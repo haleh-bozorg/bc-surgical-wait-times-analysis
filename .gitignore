@@ -1,0 +1,23 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyo
+
+# ---- Virtual Environment ----
+venv/
+.env/
+
+# ---- Jupyter ----
+.ipynb_checkpoints/
+
+# ---- Data (do NOT upload raw data) ----
+data/raw/
+
+# ---- OS ----
+.DS_Store
+
+# ---- Editor ----
+.vscode/
+
+# ---- Reports (keep figures, ignore temp) ----
+reports/tmp/
