@@ -58,7 +58,8 @@ This dataset is released under the **Open Government Licence – British Columbi
 Using BC surgical wait time data (2009–2025), this analysis compares **system demand vs capacity** over time using backlog pressure.
 
 **Key insight:**  
-Across the full period, **hernia repair exhibits persistently higher backlog pressure**, suggesting stronger and more sustained capacity constraints than skin tumour removal.
+Across the full study period, hernia repair exhibits persistently higher backlog pressure,
+indicating sustained capacity constraints rather than temporary disruption.
 
 ---
 
