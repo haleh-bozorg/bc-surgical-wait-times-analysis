@@ -48,7 +48,11 @@ This dataset is released under the **Open Government Licence – British Columbi
 ## Visuals
 The chart below compares backlog pressure across fiscal quarters for both procedures:
 
-![Backlog Pressure Comparison](reports/figures/pressure_comparison.png)
+![Backlog Pressure Trend Comparison](reports/figures/pressure_trend_comparison.png)
+
+![Mean Backlog Pressure by Period](reports/figures/pressure_mean_by_period.png)
+
+•	“Chart 1 shows quarterly trends; Chart 2 summarizes average pressure across Pre-COVID/COVID/Post-COVID.”
 
 ### COVID Impact Highlight
 The shaded region highlights the COVID period (FY 2019/20–2021/22), showing how backlog pressure evolved during system-wide disruption.
