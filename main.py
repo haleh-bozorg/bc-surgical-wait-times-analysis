@@ -1,5 +1,6 @@
 # main.py
 import os
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -8,6 +9,15 @@ RAW_PATH = "data/raw/bc_surgical_wait_times_quarterly_2009_2025.xlsx"
 def load_data(path: str) -> pd.DataFrame:
     return pd.read_excel(path)
 
+def assign_period_from_fy(fy: str) -> str:
+    start_year = int(str(fy).split("/")[0])
+    if start_year <= 2018:
+        return "Pre-COVID"
+    elif start_year <= 2021:
+        return "COVID"
+    else:
+        return "Post-COVID"
+
 def build_procedure_series(df: pd.DataFrame, procedure_name: str) -> pd.DataFrame:
     df_proc = df[df["PROCEDURE_GROUP"] == procedure_name].copy()
 
@@ -15,33 +25,27 @@ def build_procedure_series(df: pd.DataFrame, procedure_name: str) -> pd.DataFram
     df_proc["WAITING"] = pd.to_numeric(df_proc["WAITING"], errors="coerce")
     df_proc["COMPLETED"] = pd.to_numeric(df_proc["COMPLETED"], errors="coerce")
 
+    # drop rows where both are missing (keeps data honest)
+    df_proc = df_proc.dropna(subset=["WAITING", "COMPLETED"], how="all")
+
     # aggregate
     agg = (
-        df_proc.groupby(["FISCAL_YEAR", "QUARTER"])[["WAITING", "COMPLETED"]]
+        df_proc.groupby(["FISCAL_YEAR", "QUARTER"], as_index=False)[["WAITING", "COMPLETED"]]
         .sum()
-        .reset_index()
     )
 
-    # time label for plotting
+    # time label
     agg["time"] = agg["FISCAL_YEAR"].astype(str) + "-" + agg["QUARTER"]
 
-    # backlog pressure
-    agg["pressure"] = agg["WAITING"] / agg["COMPLETED"]
+    # safe pressure: avoid division by 0
+    agg["pressure"] = np.where(
+        (agg["COMPLETED"].fillna(0) == 0),
+        np.nan,
+        agg["WAITING"] / agg["COMPLETED"]
+    )
 
-    # tag procedure
     agg["procedure"] = procedure_name
-
-    # period label (Pre/COVID/Post)
-    def assign_period(fy: str) -> str:
-        start_year = int(str(fy).split("/")[0])
-        if start_year <= 2018:
-            return "Pre-COVID"
-        elif start_year <= 2021:
-            return "COVID"
-        else:
-            return "Post-COVID"
-
-    agg["period"] = agg["FISCAL_YEAR"].apply(assign_period)
+    agg["period"] = agg["FISCAL_YEAR"].apply(assign_period_from_fy)
 
     return agg
 
@@ -69,16 +73,20 @@ def main():
     print("\nHernia pressure by period (mean):")
     print(hernia_period.round(3))
 
-    # quick sanity check
-    print("\nSkin head:\n", skin[["procedure","time","WAITING","COMPLETED","pressure","period"]].head())
-    print("\nHernia head:\n", hernia[["procedure","time","WAITING","COMPLETED","pressure","period"]].head())
-
     # ensure figures folder exists
     os.makedirs("reports/figures", exist_ok=True)
 
     # =========================================================
-    # CHART 1: Pressure trend comparison (line chart)
+    # CHART 1: Pressure trend comparison (aligned by time)
     # =========================================================
+    merged = pd.merge(
+        skin[["time", "pressure"]],
+        hernia[["time", "pressure"]],
+        on="time",
+        how="inner",
+        suffixes=("_skin", "_hernia")
+    )
+
     plt.figure(figsize=(10, 4))
     plt.title(
         "Backlog Pressure Trend (WAITING / COMPLETED)\nSkin Tumour vs Hernia – BC",
@@ -87,12 +95,12 @@ def main():
     plt.ylabel("Pressure (ratio)")
     plt.xlabel("Fiscal Quarter")
 
-    plt.plot(skin["pressure"], label="Skin Tumour Removal", linewidth=2)
-    plt.plot(hernia["pressure"], label="Hernia Repair - Abdominal", linewidth=2, linestyle="--")
+    plt.plot(merged["pressure_skin"], label="Skin Tumour Removal", linewidth=2)
+    plt.plot(merged["pressure_hernia"], label="Hernia Repair - Abdominal", linewidth=2, linestyle="--")
 
     plt.xticks(
-        ticks=range(0, len(skin)),
-        labels=skin["time"],
+        ticks=range(0, len(merged)),
+        labels=merged["time"],
         rotation=90,
         fontsize=6
     )
@@ -106,7 +114,7 @@ def main():
     print(f"\n✅ Saved trend chart to: {out_path_trend}")
 
     # =========================================================
-    # CHART 2: Mean pressure by period (bar chart)  ✅ DIFFERENT
+    # CHART 2: Mean pressure by period (bar chart)
     # =========================================================
     periods_order = ["Pre-COVID", "COVID", "Post-COVID"]
 
